@@ -2,9 +2,9 @@ package client
 
 import (
 	"CoHvs/constant"
+	"CoHvs/utils"
 	"fmt"
 )
-
 
 //Work
 //to force CoH to get connection to the server, the following two steps is necessary:
@@ -14,16 +14,19 @@ func Work() {
 
 	//to play with n people, the client should send packets to n ports in order to mock n different players.
 	for offset:=0;offset<constant.MaxNum;offset++{
-		fmt.Println("\ntrying to ping ",constant.ServerIp,":",constant.ServerUdpPort+offset)
-		ping(constant.ServerIp,constant.ServerUdpPort+offset)
+		ping(constant.ServerIp,utils.GetPlayerPort(offset))
 	}
-	fmt.Println("\n\n\n=====================================")
+
+	fmt.Print("\n\n\n")
+	fmt.Println("=====================================")
 	fmt.Println("ok then you can start the game now!")
 	fmt.Println("=====================================")
+	fmt.Print("\n\n\n")
 
 	//then sniff map info packets. You can still play games if this step failed.
-	newsniff()
+	sniff()
 
+	//todo check and fix this!
+	//block the program until user press the key.
+	fmt.Scanln()
 }
-
-
