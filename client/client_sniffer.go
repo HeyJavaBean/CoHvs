@@ -28,6 +28,13 @@ func sniff() {
 		fmt.Println(err)
 		return
 	}
+	port := uint16(6112)
+	filter := getFilter(port)
+	if err := handle.SetBPFFilter(filter); err != nil {
+		fmt.Printf("set bpf filter failed: %v", err)
+		return
+	}
+
 	defer handle.Close()
 
 	fmt.Println("start tracing map packets on 6112 of ",deviceName)
@@ -36,6 +43,12 @@ func sniff() {
 	for packet := range packetSource.Packets() {
 		checkPacket(packet)
 	}
+}
+
+//定义过滤器
+func getFilter(port uint16) string {
+	filter := fmt.Sprintf("udp and ((src port %v) or (dst port %v))",  port, port)
+	return filter
 }
 
 //checkPacket
