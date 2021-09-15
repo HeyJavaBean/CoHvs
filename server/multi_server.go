@@ -46,6 +46,7 @@ func GetMultiServer() *MultiServer {
 func (server *MultiServer) Work() {
 
 	fmt.Println("Server start......")
+	fmt.Println("compatiSymmetric switch is ",compatiSymmetric)
 
 	server.controller.work()
 

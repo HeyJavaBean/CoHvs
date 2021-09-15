@@ -81,6 +81,7 @@ func checkPacket(packet gopacket.Packet) {
 //todo： udp connection can be reused.
 func call(msg []byte) {
 
+	//fixme when quickly send 2 packets it goes wrong!
 	lAddr := &net.UDPAddr{IP: net.ParseIP("localhost"), Port: constant.MapSendPort}
 	rAddr := &net.UDPAddr{IP: net.ParseIP(constant.ServerIp), Port: utils.GetMapPort()}
 	conn, err := net.DialUDP("udp", lAddr, rAddr)

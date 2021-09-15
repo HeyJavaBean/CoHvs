@@ -22,7 +22,9 @@ func main() {
 	for _, arg := range os.Args {
 		if arg=="server"{
 			serverMode = true
-			break
+		}
+		if arg=="cson"{
+			server.SwitchOnCompatiSymmetric()
 		}
 		if arg=="mock"{
 			fmt.Println("start up as mock mode")

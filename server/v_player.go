@@ -64,11 +64,28 @@ func (p *VPlayer) handle(msg []byte, raddr *net.UDPAddr) {
 func (controller *VPlayerController) findUser(addr *net.UDPAddr) *VPlayer {
 	for i := range controller.players {
 		p := &controller.players[i]
-		if p.playerAddr != nil && p.playerAddr.String() == addr.String() {
+		if ipUserCheck(p.playerAddr,addr){
 			return p
 		}
 	}
 	return nil
+}
+
+func SwitchOnCompatiSymmetric(){
+	compatiSymmetric = true
+}
+
+var compatiSymmetric = false
+
+func ipUserCheck(local *net.UDPAddr,remote *net.UDPAddr) bool{
+	if local==nil{
+		return false
+	}
+	if compatiSymmetric{
+		return local.IP.String()==remote.IP.String()
+	}else{
+		return local.String()==remote.String()
+	}
 }
 
 func (controller *VPlayerController) register(addr *net.UDPAddr) string{
