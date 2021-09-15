@@ -48,15 +48,15 @@ func (p *VPlayer) handle(msg []byte, raddr *net.UDPAddr) {
 	}
 	// if current vplayer has no player to present, just ignore the msg.
 	// if remote player send msg to itself vplayer, also ignore it.
-	fmt.Println(sender.id+" and "+p.id)
+
 	if p.playerAddr == nil || p==sender{
-		fmt.Println("ignore!")
 		return
 	}
 
 	//forward
 	// current vplayer send the package to target vplayer's real raddr
-	fmt.Println("simply forward packets ...")
+	fmt.Print("simply forward packets ...")
+	fmt.Println(sender.id+" to "+p.id)
 	sender.netter.send(msg, p.playerAddr)
 
 }
@@ -89,9 +89,11 @@ func (controller *VPlayerController) work() {
 	}
 }
 
+//todo
+// since there's no identitiy part, now only send packets as the first register player
 func (controller *VPlayerController) broadcast(msg []byte) {
 	for i := range controller.players {
 		p := &controller.players[i]
-		p.netter.send(msg, p.playerAddr)
+		controller.players[0].netter.send(msg, p.playerAddr)
 	}
 }

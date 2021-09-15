@@ -60,6 +60,9 @@ func (server *MultiServer) Work() {
 
 //syncMap
 //Get big packets from map port and broadcast them to all vplayers.
+//1. host player create a room and then send udp broadcast packets about 700 bytes
+//2. other players get this and reply a join packets about 200 bytes right to the host player's ip
+// so, the map packets must be sent from the right port, otherwise the reply steps will fail.
 func (server *MultiServer) syncMap() {
 	for {
 		msg,rAddr,err := utils.ParseMsg(server.mapConn)

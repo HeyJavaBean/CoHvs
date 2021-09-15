@@ -29,6 +29,7 @@ func Mock() {
 			raddrs = append(raddrs, raddr)
 			if len(msg) > 300 {
 				fmt.Println("【Get A Map Info】")
+				//todo fix upcoming actions
 			} else {
 				fmt.Println(raddr.String()+" => :", string(msg))
 			}
