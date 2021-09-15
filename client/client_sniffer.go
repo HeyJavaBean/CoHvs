@@ -2,40 +2,42 @@ package client
 
 import (
 	"CoHvs/constant"
+	"CoHvs/utils"
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
-	"log"
 	"net"
 	"strings"
 )
-func newsniff() {
 
-	deviceName := getDevice()
+func sniff() {
 
-	//deviceName := "\\Device\\NPF_{4E68440F-E437-4FD2-8114-330404948C5D}"
-	snapLen := int32(65535)
-	port := uint16(6112)
-	filter := getFilter(port)
-	fmt.Printf("device:%v, snapLen:%v, port:%v\n", deviceName, snapLen, port)
-	fmt.Println("filter:", filter)
-
-	//打开网络接口，抓取在线数据
-	handle, err := pcap.OpenLive(deviceName, snapLen, true, pcap.BlockForever)
-	if err != nil {
-		fmt.Printf("pcap open live failed: %v", err)
+	//todo: A more accessible way to pick nic is needed.
+	//roughly pick the first nic to sniff the game packets
+	devices, err := pcap.FindAllDevs()
+	deviceName := devices[0].Name
+	if err!=nil{
+		fmt.Println(err)
 		return
 	}
 
-	// 设置过滤器
+	//sniff
+	handle, err := pcap.OpenLive(deviceName, int32(65535), true, pcap.BlockForever)
+	if err!=nil{
+		fmt.Println(err)
+		return
+	}
+	port := uint16(6112)
+	filter := getFilter(port)
 	if err := handle.SetBPFFilter(filter); err != nil {
 		fmt.Printf("set bpf filter failed: %v", err)
 		return
 	}
+
 	defer handle.Close()
 
-	// 抓包
+	fmt.Println("start tracing map packets on 6112 of ",deviceName)
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	packetSource.NoCopy = true
 	for packet := range packetSource.Packets() {
@@ -49,86 +51,49 @@ func getFilter(port uint16) string {
 	return filter
 }
 
-
-
-
-//检测监听到的包是否是需要转发的广播包
+//checkPacket
+//In CoH 2601&2602, when a player create a new room, packets with map info will be broadcast
+//And these packets always have such features:
+//1. udp packets
+//2. is broadcast and src port is 6112
+//3. bigger than 400 bytes
+//so we sniff on the nic to catch these packets and forward them to the server.
 func checkPacket(packet gopacket.Packet) {
 
-
-	if packet.NetworkLayer() != nil && packet.TransportLayer() != nil && packet.TransportLayer().LayerType() == layers.LayerTypeUDP {
-
+	if packet.NetworkLayer() != nil && packet.TransportLayer() != nil &&
+		packet.TransportLayer().LayerType() == layers.LayerTypeUDP &&
+		packet.NetworkLayer().LayerType() == layers.LayerTypeIPv4{
 		udp := packet.TransportLayer().(*layers.UDP)
-
+		ip := packet.NetworkLayer().(*layers.IPv4)
 		if strings.Contains(udp.SrcPort.String(),"6112") && udp.Length >= constant.BigPacketLen {
-			fmt.Println("get ",udp.Length," ",udp.SrcPort)
-			fmt.Println("find and send")
+			//todo: only catch packets from localhost => check ip
+			fmt.Println("get ",udp.Length," ",udp.SrcPort, " from ",ip.SrcIP)
+
 			go call(udp.Payload)
 		}
 	}
 }
 
-//通过rpc给服务器发送广播内容
-func call(msg []byte) bool {
 
-	// the default CoH game port is 6112
-	lAddr := &net.UDPAddr{IP: net.ParseIP("localhost"), Port: 6113}
-	rAddr := &net.UDPAddr{IP: net.ParseIP(constant.ServerIp), Port: constant.ServerRpcPort}
+
+//call
+//send packets by udp
+//todo： udp connection can be reused.
+func call(msg []byte) {
+
+	//fixme when quickly send 2 packets it goes wrong!
+	lAddr := &net.UDPAddr{IP: net.ParseIP("localhost"), Port: constant.MapSendPort}
+	rAddr := &net.UDPAddr{IP: net.ParseIP(constant.ServerIp), Port: utils.GetMapPort()}
 	conn, err := net.DialUDP("udp", lAddr, rAddr)
 	defer conn.Close()
 	if err != nil {
 		fmt.Println(err)
-		return false
 	}
 
 	conn.Write(msg)
-
-	return true
 }
 
-//选择获取合适的网卡设备的名称
-func getDevice() string {
-	// 得到所有的(网络)设备
-	devices, err := pcap.FindAllDevs()
-	if err != nil {
-		log.Fatal(err)
-	}
-	// 打印设备信息
-	//fmt.Println("Devices found:")
-	//for _, d := range devices {
-	//	fmt.Println(d.Name)
-	//	fmt.Println(d.Flags)
-	//	fmt.Println(d.Addresses)
-	//	fmt.Println()
-	//}
-	//
-	dev := devices[0]
-	fmt.Println("dev use:",dev.Name)
-	//for _, device := range devices {
-	//
-	//	if len(device.Addresses) < 1 {
-	//		continue
-	//	}
-	//	flag:=false
-	//	for _, address := range device.Addresses {
-	//		if address.IP.String()=="127.0.0.1"{
-	//			break
-	//		}
-	//		flag=true
-	//	}
-	//
-	//	if flag{
-	//		fmt.Println(device.Name)
-	//		fmt.Println(device.Flags)
-	//		fmt.Println(device.Addresses)
-	//		fmt.Println()
-	//		dev = device
-	//		break
-	//	}
-	//
-	//}
-	return dev.Name
-}
+
 
 
 
