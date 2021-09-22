@@ -2,7 +2,6 @@ package server
 
 import (
 	"CoHvs/utils"
-	"fmt"
 	"net"
 	"time"
 )
@@ -25,11 +24,11 @@ type VPlayer struct {
 func (p *VPlayer) handle(msg []byte, raddr *net.UDPAddr) {
 	ctx := p.controller
 
-	fmt.Println(p.id, "and ", p.playerAddr == nil," :len ", len(msg), " from ", raddr.String(), " at ", time.Now().Format("2006-01-02 15:04:05"))
+	utils.PrintLog(p.id, "and ", p.playerAddr == nil," :len ", len(msg), " from ", raddr.String(), " at ", time.Now().Format("2006-01-02 15:04:05"))
 
 	// if the msg is ping msg, then send back connection packages
 	if len(msg) < 10 {
-		fmt.Println("【Game Connection】")
+		utils.PrintLog("【Game Connection】")
 		go utils.ConnectGame(p.netter.conn, raddr)
 		return
 	}
@@ -38,10 +37,10 @@ func (p *VPlayer) handle(msg []byte, raddr *net.UDPAddr) {
 
 	if sender == nil {
 		//register: find an empty vplayer to present as the user
-		fmt.Println("register user on vplayer ...")
+		utils.PrintLog("register user on vplayer ...")
 		//todo thread safe
 		id := ctx.register(raddr)
-		fmt.Println(raddr.String(),"is registered on ",id)
+		utils.PrintLog(raddr.String(),"is registered on ",id)
 		//fixme: not good
 		p.handle(msg,raddr)
 		return
@@ -55,8 +54,8 @@ func (p *VPlayer) handle(msg []byte, raddr *net.UDPAddr) {
 
 	//forward
 	// current vplayer send the package to target vplayer's real raddr
-	fmt.Print("simply forward packets ...")
-	fmt.Println(sender.id+" to "+p.id)
+	utils.PrintLog("simply forward packets ...")
+	utils.PrintLog(sender.id+" to "+p.id)
 	sender.netter.send(msg, p.playerAddr)
 
 }
@@ -104,6 +103,16 @@ func (controller *VPlayerController) work() {
 		p := &controller.players[i]
 		go p.netter.deal(p.handle)
 	}
+}
+
+func (controller *VPlayerController) listPlayers() []VPlayer{
+	list := []VPlayer{}
+	for _,p := range controller.players {
+		if p.playerAddr!=nil{
+			list = append(list, p)
+		}
+	}
+	return list
 }
 
 //todo

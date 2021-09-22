@@ -28,5 +28,6 @@ func Work() {
 
 	//todo check and fix this!
 	//block the program until user press the key.
-	fmt.Scanln()
+	var line string
+	fmt.Scanln(&line)
 }
